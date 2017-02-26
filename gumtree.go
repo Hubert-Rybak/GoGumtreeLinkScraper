@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"os"
+
 	"github.com/yhat/scrape"
 	"golang.org/x/net/html"
 )
@@ -37,7 +39,6 @@ func main() {
 
 func produce(c chan string, links []string) {
 	for _, item := range links {
-		//	fmt.Println("Adding main link: ", item)
 		c <- item
 	}
 
@@ -95,7 +96,6 @@ func getAllCategoriesLinks(mainCatLinksChannel chan string, allCategoriesLinksCh
 				for index := 1; index < parsed; index++ {
 					newEl := gumtreePage + strings.Replace(text, lastPageNumber, strconv.Itoa(index), 2)
 					allLinks = append(allLinks, newEl)
-					//	fmt.Println(newEl)
 				}
 				allCategoriesLinksChannel <- allLinks
 
@@ -115,14 +115,24 @@ func getAllPostLinksForCategory(allCategoriesLinksChannel chan []string, result 
 			for _, link := range links {
 				root := parse(link)
 
-				allLinks := scrape.FindAll(root, scrape.ByClass("href-link"))
-				//fmt.Println(allLinks)
+				var linksDiv *html.Node
+				mainLinksRoot := scrape.FindAll(root, scrape.ByClass("view"))
+				if len(mainLinksRoot) == 2 {
+					linksDiv = mainLinksRoot[1]
+				} else if len(mainLinksRoot) == 1 {
+					linksDiv = mainLinksRoot[0]
+				} else {
+
+					fmt.Println("ERROR! Link: ", link)
+					os.Exit(-1)
+				}
+				allLinks := scrape.FindAll(linksDiv, scrape.ByClass("href-link"))
+
 				for _, link := range allLinks {
 					href := scrape.Attr(link, "href")
 
 					newEl := gumtreePage + href
 
-					//fmt.Println(href)
 					result <- newEl
 
 				}
